@@ -1,12 +1,17 @@
-import express from 'express';
+import { Client, Intents } from 'discord.js';
+import dotenv from 'dotenv';
 
-const app = express();
-const port = 3000;
+// Use dotenv to load DISCORD_TOKEN from a .env file
+dotenv.config();
+const discordToken = process.env.DISCORD_TOKEN;
 
-app.get('/', (req, res) => {
-    res.send('Hello World!');
+// Create a new client instance
+const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+
+// When the client is ready, run this code (only once)
+client.once('ready', () => {
+    console.log('Ready!');
 });
 
-app.listen(port, () => {
-    return console.log(`server is listening on ${port}`);
-});
+// Login to Discord with your client's token
+client.login(discordToken);
