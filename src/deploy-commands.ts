@@ -4,6 +4,8 @@ const fs = require('fs');
 
 import { SlashCommandBuilder } from '@discordjs/builders';
 import dotenv from 'dotenv';
+import { Command } from './interfaces/Command';
+import { CommandOptionType } from './interfaces/CommandOption';
 
 // Use dotenv to load DISCORD_TOKEN from a .env file
 dotenv.config();
@@ -18,13 +20,27 @@ const getCommandsJson = async () => {
 
     for (const fileName of commandFileNames) {
         const commandModule = await import(`./commands/${fileName}`);
-        const command = commandModule.default;
-        console.log(JSON.stringify(command));
-        console.log(`Command Name: ${command.name}`);
-        commands.push(
-            new SlashCommandBuilder().setName(command.name).setDescription(command.description).toJSON()
-        );
+        const command: Command = commandModule.default;
+        console.log(`Registering Command Name: ${command.name}`);
+
+        // All commands have a name and description
+        const slashCommandBuilder = new SlashCommandBuilder().setName(command.name).setDescription(command.description)
+
+        if (command.options) {
+            for (const commandOption of command.options) {
+                if (commandOption.commandOptionType === CommandOptionType.STRING) {
+                    slashCommandBuilder.addStringOption(option =>
+                        option
+                            .setName(commandOption.name)
+                            .setDescription(commandOption.description)
+                            .setRequired(commandOption.isRequired)
+                    );
+                }
+            }
+        }
+        commands.push(slashCommandBuilder.toJSON());
     }
+    console.log(`Command JSON body: ${JSON.stringify(commands)}`);
     return commands;
 }
 
