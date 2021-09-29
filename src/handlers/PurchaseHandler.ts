@@ -10,6 +10,7 @@ class PurchaseHandler implements CommandHandler {
         if (interaction.user.id !== PurchaseHandler.AUTHORIZED_ID) {
             console.log('Purchase command attempted without being authorized user');
         }
+        console.log(`EtherScan Link is: ${interaction.options.getString('link')}`);
         await interaction.reply('Purchase command!');
     }
 }
