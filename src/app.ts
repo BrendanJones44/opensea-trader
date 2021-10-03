@@ -70,24 +70,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const testFireStore = async () => {
-    try {
-    const docRef = await addDoc(collection(db, "deposits"), {
-        discordUserId: 'someTest',
-        ethAmount: 0,
-        isPaid: true,
-        proofOfTransaction: 'someLinkAgain',
-        usdAmount: 0
-    });
-        console.log("Document written with ID: ", docRef.id);
-    } catch (e) {
-        console.error("Error adding document: ", e);
-    }
-}
-
-testFireStore();
+export const db = getFirestore(app);
 
 // axios.get('https://api.opensea.io/api/v1/asset/0xe785e82358879f061bc3dcac6f0444462d4b5330/933/').then((value) => console.log(value.data['last_sale']['total_price'] / 1000000000000000000));
 
