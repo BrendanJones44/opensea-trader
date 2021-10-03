@@ -1,7 +1,10 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 
 export enum CommandOptionType {
-    STRING
+    STRING,
+    USER,
+    BOOLEAN,
+    NUMBER
 }
 
 export type CommandOption = {

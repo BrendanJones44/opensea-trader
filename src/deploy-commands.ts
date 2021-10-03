@@ -36,6 +36,30 @@ const getCommandsJson = async () => {
                             .setRequired(commandOption.isRequired)
                     );
                 }
+                if (commandOption.commandOptionType === CommandOptionType.USER) {
+                    slashCommandBuilder.addUserOption(option =>
+                        option
+                            .setName(commandOption.name)
+                            .setDescription(commandOption.description)
+                            .setRequired(commandOption.isRequired)
+                    );
+                }
+                if (commandOption.commandOptionType === CommandOptionType.NUMBER) {
+                    slashCommandBuilder.addNumberOption(option =>
+                        option
+                            .setName(commandOption.name)
+                            .setDescription(commandOption.description)
+                            .setRequired(commandOption.isRequired)
+                    );
+                }
+                if (commandOption.commandOptionType === CommandOptionType.BOOLEAN) {
+                    slashCommandBuilder.addBooleanOption(option =>
+                        option
+                            .setName(commandOption.name)
+                            .setDescription(commandOption.description)
+                            .setRequired(commandOption.isRequired)
+                    );
+                }
             }
         }
         commands.push(slashCommandBuilder.toJSON());
