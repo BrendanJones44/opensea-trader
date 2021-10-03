@@ -14,10 +14,10 @@ class DescribeHandler implements CommandHandler {
         }
         console.log(`OpenSea Link is: ${interaction.options.getString('opensea_link')}`);
         
-        const openseaTransactionsRef = collection(db, 'opensea-transactions');
-        const transactionQuery = query(openseaTransactionsRef, where('assetLink', '==', interaction.options.getString('opensea_link')))
-        const queryResult = await getDocs(transactionQuery);
-        const numberMatchingRecords = queryResult.size;
+        const transactionCollection = collection(db, 'opensea-transactions');
+        const transactionQuery = query(transactionCollection, where('assetLink', '==', interaction.options.getString('opensea_link')))
+        const transactionQueryResult = await getDocs(transactionQuery);
+        const numberMatchingRecords = transactionQueryResult.size;
 
         if (numberMatchingRecords === 0) {
             await interaction.reply(`No matching transactions found for: ${interaction.options.getString('opensea_link')}\nYou either have a typo or this has not been recorded yet`);
@@ -25,8 +25,8 @@ class DescribeHandler implements CommandHandler {
         }
 
         if (numberMatchingRecords === 1) {
-            const transactionRecord = queryResult.docs[0];
-            
+            const transactionRecord = transactionQueryResult.docs[0];
+
             const purchasePrice = transactionRecord.get('purchasePrice');
             const purchaseFee = transactionRecord.get('purchaseFees');
             const totalCost = purchasePrice + purchaseFee;
@@ -35,6 +35,28 @@ class DescribeHandler implements CommandHandler {
             const salePrice = transactionRecord.get('salePrice');
             const saleFee = transactionRecord.get('saleFees');
             const netSale = salePrice - saleFee;
+
+            const equityCollection = collection(db, 'equity-stakes');
+            const equityQuery = query(equityCollection, where('assetLink', '==', interaction.options.getString('opensea_link')));
+            const equityQueryResult = await getDocs(equityQuery);
+
+            let equityReplyString = '    Equity Breakdown\n';
+
+            if (equityQueryResult.size === 0) {
+                equityReplyString += '        No equity owners found';
+            } else {
+                equityQueryResult.forEach(equityStake => {
+                    const amountEthPaid = equityStake.get('amountEthPaid');
+                    const portionOfAsset = amountEthPaid / totalCost;
+                    const amountEthOwed = portionOfAsset * netSale;
+
+                    equityReplyString += `        Breakdown for ${equityStake.get('discordDisplayName')}:\n`;
+                    equityReplyString += `            Paid ${amountEthPaid} ETH on ${equityStake.get('stakeDate').toDate()}\n`;
+                    equityReplyString += `            Results in ${amountEthPaid} / ${totalCost} ownership which is: ${portionOfAsset * 100} %\n`;
+                    equityReplyString += `            ETH owed after sale: ${amountEthOwed}\n`;
+                    equityReplyString += `            Profited ${amountEthOwed - amountEthPaid} ETH (${(amountEthOwed / amountEthPaid) * 100 } % return)\n`;
+                });
+            }
 
 
             await interaction.reply(
@@ -51,7 +73,7 @@ class DescribeHandler implements CommandHandler {
                 `        Net Sale: ${netSale} ETH\n` +
                 `        Total Cost: ${totalCost} ETH\n` +
                 `        Profit: ${netSale - totalCost} ETH\n` +
-                `        % Return: ${netSale/totalCost * 100}`
+                `        % Return: ${(netSale / totalCost) * 100}\n` + equityReplyString
             );
             return;
         }
