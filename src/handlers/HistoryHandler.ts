@@ -72,20 +72,23 @@ class HistoryHandler implements CommandHandler {
                 const purchaseFee = transactionMatchingEquityStake.get('purchaseFees');
                 const totalCost = purchasePrice + purchaseFee;
 
-                // TODO: Need to handle conditional logic if the asset hasn't sold yet
                 const salePrice = transactionMatchingEquityStake.get('salePrice');
                 const saleFee = transactionMatchingEquityStake.get('saleFees');
-                const netSale = salePrice - saleFee;
+                const assetWasSold = salePrice !== undefined && saleFee !== undefined;
 
-                const amountEthPaid = equityStake.get('amountEthPaid');
-                const portionOfAsset = amountEthPaid / totalCost;
-                const amountEthOwed = portionOfAsset * netSale;
+                if (assetWasSold) {
+                    const netSale = salePrice - saleFee;
 
-                amounts.push({
-                    date: transactionMatchingEquityStake.get('saleDate').toDate(),
-                    eth: amountEthOwed,
-                    description: `Payout for owning ${(portionOfAsset * 100).toPrecision(5)}% of ${assetLink}`
-                });
+                    const amountEthPaid = equityStake.get('amountEthPaid');
+                    const portionOfAsset = amountEthPaid / totalCost;
+                    const amountEthOwed = portionOfAsset * netSale;
+
+                    amounts.push({
+                        date: transactionMatchingEquityStake.get('saleDate').toDate(),
+                        eth: amountEthOwed,
+                        description: `Payout for owning ${(portionOfAsset * 100).toPrecision(5)}% of ${assetLink}`
+                    });
+                }
             } else {
                 console.log(`No transaction found for assetLink: ${assetLink}`);
             }
