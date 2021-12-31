@@ -6,6 +6,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 class HistoryHandler implements CommandHandler {
     // Brendan's userId
     private static AUTHORIZED_ID = '254438140087894036';
+    private static CURRENT_ETH_PRICE = 3719.33;
 
     async execute(interaction: CommandInteraction) {
         console.log(`Received history command with interaction ${JSON.stringify(interaction)}`);
@@ -23,6 +24,7 @@ class HistoryHandler implements CommandHandler {
         // From each transaction
         
         const amounts: { date: Date, eth: number, description: string }[] = [];
+        const unsoldAssets: { assetLink: string, assetCost: number, assetStake: number, percentageOwned: string }[] = [];
 
         // Get all deposits
         const depositCollection = collection(db, 'deposits');
@@ -76,17 +78,25 @@ class HistoryHandler implements CommandHandler {
                 const saleFee = transactionMatchingEquityStake.get('saleFees');
                 const assetWasSold = salePrice !== undefined && saleFee !== undefined;
 
+                const amountEthPaid = equityStake.get('amountEthPaid');
+                const portionOfAsset = amountEthPaid / totalCost;
+                const percentageOwned = (portionOfAsset * 100).toPrecision(5);
+
                 if (assetWasSold) {
                     const netSale = salePrice - saleFee;
-
-                    const amountEthPaid = equityStake.get('amountEthPaid');
-                    const portionOfAsset = amountEthPaid / totalCost;
                     const amountEthOwed = portionOfAsset * netSale;
 
                     amounts.push({
                         date: transactionMatchingEquityStake.get('saleDate').toDate(),
                         eth: amountEthOwed,
                         description: `Payout for owning ${(portionOfAsset * 100).toPrecision(5)}% of ${assetLink}`
+                    });
+                } else {
+                    unsoldAssets.push({
+                        assetLink: assetLink,
+                        assetCost: totalCost,
+                        assetStake: amountEthPaid,
+                        percentageOwned: percentageOwned
                     });
                 }
             } else {
@@ -108,7 +118,20 @@ class HistoryHandler implements CommandHandler {
 
         console.log(replyString);
 
-        await interaction.reply("History logged for Ethan")
+        let amountEthInAssets = 0;
+        let portfolioString = `Portfolio for ${discordName}:\n`;
+        unsoldAssets.forEach(unsoldAsset => {
+            portfolioString += `   Owns ${unsoldAsset.percentageOwned}% of ${unsoldAsset.assetLink}\n`;
+            portfolioString += `      (NFT Cost was ${unsoldAsset.assetCost.toPrecision(5)} ETH, paid ${unsoldAsset.assetStake.toPrecision(5)} ETH)\n`;
+            amountEthInAssets += unsoldAsset.assetStake;
+        });
+        portfolioString += '========\n';
+        portfolioString += `(USD amounts calculated assuming ETH is $${HistoryHandler.CURRENT_ETH_PRICE})\n\n`;
+        portfolioString += `Total amount in NFTS not sold yet: ${amountEthInAssets.toPrecision(5)} (ETH), ${(amountEthInAssets * HistoryHandler.CURRENT_ETH_PRICE).toFixed(2)} (in USD)\n`;
+        portfolioString += `Total amount Brendan is holding: ${balance.toFixed(5)} (ETH), ${(balance * HistoryHandler.CURRENT_ETH_PRICE).toFixed(2)} (in USD)\n`;
+        portfolioString += `Total portfolio worth ${(balance + amountEthInAssets).toFixed(5)} (ETH), ${((balance + amountEthInAssets) * HistoryHandler.CURRENT_ETH_PRICE).toFixed(2)} (in USD)`;
+
+        await interaction.reply(portfolioString);
         // Assuming the same WoW is not bought and sold multiple times
         // await interaction.reply('Multiple transactions found for this asset! Not supported yet!')
     }
